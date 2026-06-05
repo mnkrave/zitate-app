@@ -10,9 +10,22 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchQuotes = async () => {
-    const res = await fetch("/api/quotes");
-    const data = await res.json();
-    setQuotes(data);
+    try {
+      const res = await fetch("/api/quotes");
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setQuotes(data);
+      } else {
+        console.error("Invalid response format, expected array:", data);
+        setQuotes([]);
+      }
+    } catch (err) {
+      console.error("Error fetching quotes:", err);
+      setQuotes([]);
+    }
   };
 
   useEffect(() => {

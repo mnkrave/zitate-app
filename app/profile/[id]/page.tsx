@@ -10,9 +10,22 @@ export default function Profile({ params }: { params: Promise<{ id: string }> })
   const [analyzing, setAnalyzing] = useState(false);
 
   const fetchUser = async () => {
-    const res = await fetch(`/api/users/${id}`);
-    const data = await res.json();
-    setUser(data);
+    try {
+      const res = await fetch(`/api/users/${id}`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      if (data && !data.error) {
+        setUser(data);
+      } else {
+        console.error("API error:", data);
+        setUser({ name: "Fehler beim Laden", quotes: [] });
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setUser({ name: "Fehler beim Laden", quotes: [] });
+    }
   };
 
   useEffect(() => {
