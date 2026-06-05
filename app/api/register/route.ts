@@ -9,25 +9,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const whitelistStr = process.env.WHITELISTED_EMAILS;
-    if (whitelistStr) {
-      const allowedEmails = whitelistStr.split(",").map(e => e.trim().toLowerCase());
-      if (!allowedEmails.includes(email.toLowerCase())) {
-        return NextResponse.json({ error: "Zugriff verweigert: E-Mail ist nicht auf der Whitelist." }, { status: 403 });
+    const emailLower = email.toLowerCase();
+    let isWhitelisted = emailLower === "lukasreinle0@gmail.com";
+
+    if (!isWhitelisted) {
+      const whitelisted = await prisma.whitelistedEmail.findUnique({
+        where: { email: emailLower }
+      });
+      if (whitelisted) {
+        isWhitelisted = true;
+      } else {
+        const whitelistStr = process.env.WHITELISTED_EMAILS;
+        if (whitelistStr) {
+          const allowedEmails = whitelistStr.split(",").map(e => e.trim().toLowerCase());
+          if (allowedEmails.includes(emailLower)) {
+            await prisma.whitelistedEmail.create({ data: { email: emailLower } });
+            isWhitelisted = true;
+          }
+        }
       }
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (!isWhitelisted) {
+      return NextResponse.json({ error: "Zugriff verweigert: E-Mail ist nicht auf der Whitelist." }, { status: 403 });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email: emailLower } });
     if (existingUser) {
       return NextResponse.json({ error: "Email already in use" }, { status: 400 });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const isAdmin = emailLower === "lukasreinle0@gmail.com";
     const user = await prisma.user.create({
       data: {
         name,
-        email,
+        email: emailLower,
         password: hashedPassword,
+        role: isAdmin ? "ADMIN" : "USER",
       }
     });
 

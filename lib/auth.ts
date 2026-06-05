@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          role: user.role,
         };
       }
     })
@@ -49,13 +50,34 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (!user.email) return false;
+      const emailLower = user.email.toLowerCase();
 
-      // Whitelist check
-      const whitelistStr = process.env.WHITELISTED_EMAILS;
-      if (whitelistStr) {
-        const allowedEmails = whitelistStr.split(",").map(e => e.trim().toLowerCase());
-        if (!allowedEmails.includes(user.email.toLowerCase())) {
-          return false; // Access Denied
+      // Super admin is always whitelisted
+      if (emailLower === "lukasreinle0@gmail.com") {
+        const exists = await prisma.whitelistedEmail.findUnique({ where: { email: emailLower } });
+        if (!exists) {
+          await prisma.whitelistedEmail.create({ data: { email: emailLower } });
+        }
+      } else {
+        // Check dynamic database whitelist
+        const whitelisted = await prisma.whitelistedEmail.findUnique({
+          where: { email: emailLower }
+        });
+
+        if (!whitelisted) {
+          // Fallback: old environment variable whitelist (seamless migration)
+          const whitelistStr = process.env.WHITELISTED_EMAILS;
+          if (whitelistStr) {
+            const allowedEmails = whitelistStr.split(",").map(e => e.trim().toLowerCase());
+            if (allowedEmails.includes(emailLower)) {
+              // Automatically migrate to the database
+              await prisma.whitelistedEmail.create({ data: { email: emailLower } });
+            } else {
+              return false; // Access Denied
+            }
+          } else {
+            return false; // Access Denied
+          }
         }
       }
 
@@ -63,26 +85,37 @@ export const authOptions: NextAuthOptions = {
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email }
         });
+        const isAdmin = emailLower === "lukasreinle0@gmail.com";
+        const role = isAdmin ? "ADMIN" : "USER";
+
         if (!existingUser) {
           await prisma.user.create({
             data: {
               email: user.email,
               name: user.name || "Google User",
               image: user.image,
+              role,
             }
+          });
+        } else if (isAdmin && existingUser.role !== "ADMIN") {
+          await prisma.user.update({
+            where: { email: user.email },
+            data: { role: "ADMIN" }
           });
         }
       }
       return true;
     },
-    async jwt({ token, user, account }) {
-      if (account?.provider === "google" && user?.email) {
-        const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-        if (dbUser) {
-          token.sub = dbUser.id;
-        }
-      } else if (user) {
+    async jwt({ token, user }) {
+      if (user) {
         token.sub = user.id;
+        // @ts-ignore
+        token.role = user.role || "USER";
+      } else if (token.sub) {
+        const dbUser = await prisma.user.findUnique({ where: { id: token.sub as string } });
+        if (dbUser) {
+          token.role = dbUser.role;
+        }
       }
       return token;
     },
@@ -90,6 +123,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         // @ts-ignore
         session.user.id = token.sub;
+        // @ts-ignore
+        session.user.role = token.role || "USER";
       }
       return session;
     }

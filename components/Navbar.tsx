@@ -12,6 +12,9 @@ export default function Navbar() {
         {session ? (
           <>
             <Link href="/" className="nav-link">Feed</Link>
+            {session.user?.email === "lukasreinle0@gmail.com" && (
+              <Link href="/admin" className="nav-link">User-Verwaltung</Link>
+            )}
             {/* @ts-ignore */}
             <Link href={`/profile/${session.user?.id}`} className="nav-link">Mein Profil</Link>
             <button onClick={() => signOut()} className="btn btn-secondary">Logout</button>
