@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import convert from "heic-convert";
 
 export async function POST(req: Request) {
   try {
@@ -24,9 +25,27 @@ export async function POST(req: Request) {
 
     let imageUrl = null;
     if (file && file.size > 0) {
-      const buffer = Buffer.from(await file.arrayBuffer());
+      let buffer = Buffer.from(await file.arrayBuffer());
+      const filename = file.name.toLowerCase();
+      const isHeic = filename.endsWith(".heic") || filename.endsWith(".heif") || file.type === "image/heic" || file.type === "image/heif";
+      let mimeType = file.type;
+
+      if (isHeic) {
+        try {
+          const outputBuffer = await convert({
+            buffer: buffer,
+            format: "JPEG",
+            quality: 0.8
+          });
+          buffer = Buffer.from(outputBuffer);
+          mimeType = "image/jpeg";
+        } catch (convertError) {
+          console.error("HEIC conversion failed:", convertError);
+        }
+      }
+
       const base64Data = buffer.toString("base64");
-      imageUrl = `data:${file.type};base64,${base64Data}`;
+      imageUrl = `data:${mimeType};base64,${base64Data}`;
     }
 
     const date = dateStr ? new Date(dateStr) : new Date();
