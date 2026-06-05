@@ -213,7 +213,7 @@ export default function AdminDashboard() {
                 ))}
                 {whitelist.length === 0 && (
                   <tr>
-                    <td colSpan={2} style={{ padding: "1rem 0", textStyle: "italic", color: "var(--text-secondary)" }}>Keine E-Mails auf der Whitelist.</td>
+                    <td colSpan={2} style={{ padding: "1rem 0", fontStyle: "italic", color: "var(--text-secondary)" }}>Keine E-Mails auf der Whitelist.</td>
                   </tr>
                 )}
               </tbody>
@@ -256,7 +256,7 @@ export default function AdminDashboard() {
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ padding: "1rem 0", textStyle: "italic", color: "var(--text-secondary)", textAlign: "center" }}>Keine registrierten Benutzer.</td>
+                    <td colSpan={3} style={{ padding: "1rem 0", fontStyle: "italic", color: "var(--text-secondary)", textAlign: "center" }}>Keine registrierten Benutzer.</td>
                   </tr>
                 )}
               </tbody>
