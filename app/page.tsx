@@ -6,7 +6,7 @@ import SubmitQuoteModal from "@/components/SubmitQuoteModal";
 
 export default function Home() {
   const { data: session } = useSession();
-  const [quotes, setQuotes] = useState([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchQuotes = async () => {
