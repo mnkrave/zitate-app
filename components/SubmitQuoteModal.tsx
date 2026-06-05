@@ -18,6 +18,12 @@ export default function SubmitQuoteModal({ isOpen, onClose, onSuccess }: { isOpe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (image && image.size > 3 * 1024 * 1024) {
+      alert("Das Bild ist zu groß! Bitte wähle ein Bild, das kleiner als 3 MB ist (für Vercel).");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("text", text);
     formData.append("authorId", authorId);

@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 
 export async function POST(req: Request) {
   try {
@@ -27,16 +25,8 @@ export async function POST(req: Request) {
     let imageUrl = null;
     if (file && file.size > 0) {
       const buffer = Buffer.from(await file.arrayBuffer());
-      const filename = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-      const uploadDir = path.join(process.cwd(), "public/uploads");
-      
-      try {
-        await mkdir(uploadDir, { recursive: true });
-        await writeFile(path.join(uploadDir, filename), buffer);
-        imageUrl = `/uploads/${filename}`;
-      } catch (err) {
-        console.error("File upload failed", err);
-      }
+      const base64Data = buffer.toString("base64");
+      imageUrl = `data:${file.type};base64,${base64Data}`;
     }
 
     const date = dateStr ? new Date(dateStr) : new Date();
