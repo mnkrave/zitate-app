@@ -1,0 +1,48 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String?
+  image        String?
+  aiProfile    String?   // The generated humor profile
+  quotes       Quote[]   @relation("QuoteAuthor")
+  submitted    Quote[]   @relation("QuoteSubmitter")
+  upvotes      Upvote[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Quote {
+  id           String   @id @default(cuid())
+  text         String
+  authorId     String
+  author       User     @relation("QuoteAuthor", fields: [authorId], references: [id])
+  submitterId  String
+  submitter    User     @relation("QuoteSubmitter", fields: [submitterId], references: [id])
+  date         DateTime?
+  imageUrl     String?
+  upvotes      Upvote[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Upvote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  quoteId   String
+  quote     Quote    @relation(fields: [quoteId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, quoteId])
+}
